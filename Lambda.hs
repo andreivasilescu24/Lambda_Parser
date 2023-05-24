@@ -67,7 +67,10 @@ reduceAllA expression
 
 -- TODO 3.1. make substitutions into a expression with Macros
 evalMacros :: [(String, Expr)] -> Expr -> Expr
-evalMacros = undefined
+evalMacros list expr =
+     
+
+
 
 -- TODO 4.1. evaluate code sequence using given strategy
 evalCode :: (Expr -> Expr) -> [Code] -> [Expr]

@@ -58,46 +58,50 @@ predicateParser p = Parser $ \s ->
         [] -> Nothing
         (x:xs) -> if p x then Just(x, xs) else Nothing
 
+starParser :: Parser a -> Parser [a]
+starParser p = plusParser p <|> return []
+
+plusParser :: Parser a -> Parser [a]
+plusParser p = do
+    x <- p
+    xs <- starParser p
+    return (x:xs)
+
+varParser :: Parser String
+varParser = do
+    x <- predicateParser (isAlpha)
+    xs <- starParser (predicateParser isAlphaNum)
+    return (x:xs)
+
+
 parser_variable :: Parser Expr
 parser_variable = do
-    x <- predicateParser (isAlpha)
-    return $ Variable [x]
+    x <- varParser
+    return $ Variable x
+
+parse_start_application :: Parser Expr
+parse_start_application = do
+    _ <- charParser '('
+    expr <- parser_application
+    _ <- charParser ')'
+    return expr
 
 parser_application :: Parser Expr
 parser_application = do
-    -- first <- charParser '('
-    -- case first of
-    --     Just _ ->
-    --         do
-    --             x <- parser_variable <|> parser_function
-    --             charParser ' '
-    --             y <- parser_variable <|> parser_function
-    --             charParser ')'
-    --             return $ Application x y
-                
-    --     _ -> 
-    --         do
-    --             x <- parser_variable <|> parser_function
-    --             charParser ' '
-    --             y <- parser_variable <|> parser_function
-    --             return $ Application x y
-    charParser '('
-    x <- parser_variable <|> parser_function <|> parser_application
-    charParser ' '
-    y <- parser_variable <|> parser_function <|> parser_application
-    charParser ')'
-    return $ Application x y
+    x <- parser_variable <|> parser_function <|> parse_start_application
+    y <- many(charParser ' ' *> (parser_variable <|> parser_function <|> parse_start_application))
+    return $ foldl Application x y 
 
 parser_function :: Parser Expr 
 parser_function = do
     charParser '\\'
-    x <- predicateParser (isAlpha)
+    x <- varParser
     charParser '.'
-    y <- parser_variable <|> parser_function <|> parser_application
-    return $ Function [x] y
+    y <- parser_variable <|> parser_function <|> parse_start_application
+    return $ Function x y
 
 parse_expr :: String -> Expr
-parse_expr s = case parse (parser_variable <|> parser_function <|> parser_application) s of
+parse_expr s = case parse (parser_application <|> parse_start_application <|>parser_variable <|> parser_function) s of
     Just (x, _) -> x
     Nothing -> Variable "a"
 

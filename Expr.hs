@@ -6,9 +6,12 @@ module Expr where
         - a Application - e1 e2
 --}
 
+data Macro = String
+
 data Expr = Variable String
           | Function String Expr
           | Application Expr Expr
+          | Macro String
 
 data Code = Evaluate Expr
           | Assign String Expr
@@ -18,7 +21,7 @@ data Code = Evaluate Expr
 v = Variable
 f = Function
 a = Application
-macro = undefined -- TODO 3. add shorthand for Macro
+macro = Macro-- TODO 3. add shorthand for Macro
 
 -- show instance 
 instance Show Expr where
@@ -29,6 +32,7 @@ instance Show Expr where
     show (Application e1 (Application u v)) = (show e1) ++ " (" ++ (show e2) ++ ")"
         where e2 = (Application u v)
     show (Application e1 e2) = (show e1) ++ (' ':(show e2))
+    show (Macro s) = "$" ++ s
     -- TODO 3. add show instance for Macro
 
 -- equality instance
@@ -44,4 +48,5 @@ instance Eq Expr where
         equal (Application e1 e2) (Application e3 e4) env = (equal e1 e3 env) && (equal e2 e4 env)
         -- TODO 3. add equal instance for Macro
         -- before default case !!!
+        -- equal ()
         equal _ _ _ = False
