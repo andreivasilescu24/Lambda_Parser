@@ -48,5 +48,4 @@ instance Eq Expr where
         equal (Application e1 e2) (Application e3 e4) env = (equal e1 e3 env) && (equal e2 e4 env)
         -- TODO 3. add equal instance for Macro
         -- before default case !!!
-        -- equal ()
         equal _ _ _ = False
