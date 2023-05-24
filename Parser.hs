@@ -64,24 +64,29 @@ parser_variable = do
     return $ Variable [x]
 
 parser_application :: Parser Expr
-parser_application = undefined
 parser_application = do
-    first <- charParser '('
-    case first of
-        Just _ ->
-            do
-                x <- parser_variable <|> parser_function
-                charParser ' '
-                y <- parser_variable <|> parser_function
-                charParser ')'
-                return $ Application x y
+    -- first <- charParser '('
+    -- case first of
+    --     Just _ ->
+    --         do
+    --             x <- parser_variable <|> parser_function
+    --             charParser ' '
+    --             y <- parser_variable <|> parser_function
+    --             charParser ')'
+    --             return $ Application x y
                 
-        _ -> 
-            do
-                x <- parser_variable <|> parser_function
-                charParser ' '
-                y <- parser_variable <|> parser_function
-                return $ Application x y
+    --     _ -> 
+    --         do
+    --             x <- parser_variable <|> parser_function
+    --             charParser ' '
+    --             y <- parser_variable <|> parser_function
+    --             return $ Application x y
+    charParser '('
+    x <- parser_variable <|> parser_function <|> parser_application
+    charParser ' '
+    y <- parser_variable <|> parser_function <|> parser_application
+    charParser ')'
+    return $ Application x y
 
 parser_function :: Parser Expr 
 parser_function = do
