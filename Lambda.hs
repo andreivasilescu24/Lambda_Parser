@@ -80,14 +80,25 @@ evalMacros dict expr =
                         Nothing -> Macro x
 
 
-updateDict :: [(String, Expr)]
-
 
 -- TODO 4.1. evaluate code sequence using given strategy
 evalCode :: (Expr -> Expr) -> [Code] -> [Expr]
-evalCode eval_strategy code =
-    case code of
-        [] -> []
-        (Evaluate e) : xs -> (eval_strategy e) : (evalCode eval_strategy xs)
-        (Assign s e) : xs -> (s = e) : (evalCode eval_strategy xs)
+evalCode eval_strategy code = aux_code eval_strategy code []
+        where
+            aux_code :: (Expr -> Expr) -> [Code] -> [(String, Expr)] -> [Expr]
+            aux_code eval_strategy code dict =
+                case code of
+                    [] -> []
+                    (Evaluate e) : xs -> (eval_strategy $ evalMacros dict e) : (aux_code eval_strategy xs dict)
+                    (Assign s e) : xs -> 
+                        case lookup s dict of
+                            (Just e') -> aux_code eval_strategy xs ((s, e) : (delete (s, e') dict))
+                            Nothing -> aux_code eval_strategy xs ((s, e) : dict)
+
+
+
+
+                
+
+            
 

@@ -40,8 +40,6 @@ instance Alternative Parser where
             Nothing -> parse p2 s
             Just(x, s2) -> Just(x, s2)
 
---- type declaration over ---
-
 -- TODO 2.1. parse a expression
 failParser :: Parser a
 failParser = Parser $ \s -> Nothing
@@ -72,6 +70,8 @@ varParser = do
     x <- predicateParser (isAlpha)
     xs <- starParser (predicateParser isAlphaNum)
     return (x:xs)
+
+
 
 parser_macro :: Parser Expr
 parser_macro = do
@@ -106,11 +106,28 @@ parser_function = do
     return $ Function x y
 
 parse_expr :: String -> Expr
-parse_expr s = case parse (parser_application <|> parse_start_application <|>parser_variable <|> parser_function <|> parser_macro) s of
+parse_expr s = case parse (parser_application <|> parse_start_application <|> parser_variable <|> parser_function <|> parser_macro) s of
     Just (x, _) -> x
     Nothing -> Variable "a"
 
 
 -- TODO 4.2. parse code
 parse_code :: String -> Code
-parse_code = undefined
+parse_code s =
+    case parse (parser_assign <|> parser_evaluate) s of
+        Just (x, _) -> x
+        Nothing -> Assign "a" (Variable "a") 
+
+parser_assign :: Parser Code
+parser_assign = do
+    x <- varParser
+    many(charParser ' ')
+    charParser '='
+    many(charParser ' ')
+    y <- parser_variable <|> parser_function <|> parse_start_application <|> parser_macro
+    return $ Assign x y
+
+parser_evaluate :: Parser Code
+parser_evaluate = do
+    x <- parser_application <|> parse_start_application <|> parser_variable <|> parser_function <|> parser_macro
+    return $ Evaluate x
