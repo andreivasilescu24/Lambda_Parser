@@ -5,9 +5,6 @@ module Expr where
         - a Function    - \x.e
         - a Application - e1 e2
 --}
-
-data Macro = String
-
 data Expr = Variable String
           | Function String Expr
           | Application Expr Expr
@@ -48,4 +45,5 @@ instance Eq Expr where
         equal (Application e1 e2) (Application e3 e4) env = (equal e1 e3 env) && (equal e2 e4 env)
         -- TODO 3. add equal instance for Macro
         -- before default case !!!
+        equal (Macro macro1) (Macro macro2) env = macro1 == macro2
         equal _ _ _ = False

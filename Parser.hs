@@ -73,6 +73,11 @@ varParser = do
     xs <- starParser (predicateParser isAlphaNum)
     return (x:xs)
 
+parser_macro :: Parser Expr
+parser_macro = do
+    charParser '$'
+    x <- varParser
+    return $ Macro x
 
 parser_variable :: Parser Expr
 parser_variable = do
@@ -81,15 +86,15 @@ parser_variable = do
 
 parse_start_application :: Parser Expr
 parse_start_application = do
-    _ <- charParser '('
+    charParser '('
     expr <- parser_application
-    _ <- charParser ')'
+    charParser ')'
     return expr
 
 parser_application :: Parser Expr
 parser_application = do
-    x <- parser_variable <|> parser_function <|> parse_start_application
-    y <- many(charParser ' ' *> (parser_variable <|> parser_function <|> parse_start_application))
+    x <- parser_variable <|> parser_function <|> parse_start_application <|> parser_macro
+    y <- many(charParser ' ' *> (parser_variable <|> parser_function <|> parse_start_application <|> parser_macro))
     return $ foldl Application x y 
 
 parser_function :: Parser Expr 
@@ -97,11 +102,11 @@ parser_function = do
     charParser '\\'
     x <- varParser
     charParser '.'
-    y <- parser_variable <|> parser_function <|> parse_start_application
+    y <- parser_variable <|> parser_function <|> parse_start_application <|> parser_macro
     return $ Function x y
 
 parse_expr :: String -> Expr
-parse_expr s = case parse (parser_application <|> parse_start_application <|>parser_variable <|> parser_function) s of
+parse_expr s = case parse (parser_application <|> parse_start_application <|>parser_variable <|> parser_function <|> parser_macro) s of
     Just (x, _) -> x
     Nothing -> Variable "a"
 

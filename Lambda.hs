@@ -67,11 +67,27 @@ reduceAllA expression
 
 -- TODO 3.1. make substitutions into a expression with Macros
 evalMacros :: [(String, Expr)] -> Expr -> Expr
-evalMacros list expr =
-     
+evalMacros dict expr =
+    case expr of
+        (Variable x) -> Variable x
+        (Function x e) -> Function x $ evalMacros dict e
+        (Application e1 e2) -> Application (evalMacros dict e1) (evalMacros dict e2)
+        (Macro x) -> case lookup x dict of
+                        (Just e) ->
+                            case e of
+                                (Macro y) -> evalMacros dict e
+                                _ -> e
+                        Nothing -> Macro x
 
+
+updateDict :: [(String, Expr)]
 
 
 -- TODO 4.1. evaluate code sequence using given strategy
 evalCode :: (Expr -> Expr) -> [Code] -> [Expr]
-evalCode = undefined
+evalCode eval_strategy code =
+    case code of
+        [] -> []
+        (Evaluate e) : xs -> (eval_strategy e) : (evalCode eval_strategy xs)
+        (Assign s e) : xs -> (s = e) : (evalCode eval_strategy xs)
+
