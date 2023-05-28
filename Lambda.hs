@@ -7,20 +7,28 @@ free_vars :: Expr -> [String]
 free_vars x = case x of
                 (Variable y) -> [y]
                 (Function y expression) -> y `delete` free_vars expression
-                (Application e1 e2) -> union (free_vars e1) (free_vars e2)
+                (Application e1 e2) -> (free_vars e1) `union` (free_vars e2)
 
+
+unusedVariableSymbol :: [String] -> [Char] -> Char
+unusedVariableSymbol vars chars = head $ filter (\c -> [c] `notElem` vars) chars
 
 reduce :: Expr -> String -> Expr -> Expr
 reduce expr x replacement =
     case expr of
         (Variable v) -> if v == x then replacement else Variable v
-        (Function param body) -> if param == x then Function param body 
-                                    else if param `notElem` free_vars replacement 
-                                                    then Function param $ reduce body x replacement
-                                                else reduce (Function "a" $ reduce body param (Variable "a")) x replacement 
-
+        
+        (Function param body) ->
+            if param == x then Function param body
+            
+            else if param `notElem` free_vars replacement then Function param $ reduce body x replacement
+                
+                else reduce (Function [unusedChar] $ reduce body param (Variable [unusedChar])) x replacement
+                    where 
+                        vars = free_vars replacement `union` free_vars body
+                        unusedChar = unusedVariableSymbol vars ['a'..'z']
+        
         (Application expr1 expr2) -> Application (reduce expr1 x replacement) (reduce expr2 x replacement)
-
 
 -- TODO 1.3. perform one step of Normal Evaluation
 stepN :: Expr -> Expr
@@ -29,8 +37,8 @@ stepN expression =
         (Variable x) -> Variable x
         (Function x e) -> Function x $ stepN e
         (Application (Function x e1) e2) -> reduce e1 x e2
-        (Application (Application e' e'') e2) -> Application (stepN (Application e' e'')) e2
-        (Application (Variable y) e2) -> Application (Variable y) (stepN e2)
+        (Application (Application e1 e2) e3) -> Application (stepN (Application e1 e2)) e3
+        (Application (Variable x) e) -> Application (Variable x) (stepN e)
 
 -- TODO 1.4. perform Normal Evaluation
 reduceN :: Expr -> Expr
@@ -49,10 +57,10 @@ stepA expression =
     case expression of
         (Variable x) -> Variable x
         (Function x e) -> Function x $ stepA e
-        (Application (Application e2 e3) e1) -> Application (stepA $ Application e2 e3) e1
+        (Application (Application e1 e2) e3) -> Application (stepA $ Application e1 e2) e3
         (Application e1 (Application e2 e3)) -> Application e1 $ stepA (Application e2 e3)
         (Application (Function x e1) e2) -> reduce e1 x $ stepA e2
-        (Application (Variable y) e2) -> Application (Variable y) (stepA e2)
+        (Application (Variable x) e) -> Application (Variable x) (stepA e)
 
 -- TODO 1.6. perform Applicative Evaluation
 reduceA :: Expr -> Expr
@@ -73,11 +81,11 @@ evalMacros dict expr =
         (Function x e) -> Function x $ evalMacros dict e
         (Application e1 e2) -> Application (evalMacros dict e1) (evalMacros dict e2)
         (Macro x) -> case lookup x dict of
-                        (Just e) ->
-                            case e of
-                                (Macro y) -> evalMacros dict e
-                                _ -> e
-                        Nothing -> Macro x
+                        (Just value) ->
+                            case value of
+                                (Macro y) -> evalMacros dict value
+                                _ -> value
+                        Nothing -> error ("couldn't find Macro")
 
 
 
@@ -89,16 +97,8 @@ evalCode eval_strategy code = aux_code eval_strategy code []
             aux_code eval_strategy code dict =
                 case code of
                     [] -> []
-                    (Evaluate e) : xs -> (eval_strategy $ evalMacros dict e) : (aux_code eval_strategy xs dict)
-                    (Assign s e) : xs -> 
+                    (Evaluate expr) : xs -> (eval_strategy $ evalMacros dict expr) : (aux_code eval_strategy xs dict)
+                    (Assign s expr) : xs -> 
                         case lookup s dict of
-                            (Just e') -> aux_code eval_strategy xs ((s, e) : (delete (s, e') dict))
-                            Nothing -> aux_code eval_strategy xs ((s, e) : dict)
-
-
-
-
-                
-
-            
-
+                            (Just ex_expr) -> aux_code eval_strategy xs ((s, expr) : (delete (s, ex_expr) dict))
+                            Nothing -> aux_code eval_strategy xs ((s, expr) : dict)
